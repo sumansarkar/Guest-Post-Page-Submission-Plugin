@@ -1,0 +1,29 @@
+/**
+ * All of the CSS for your public-facing functionality should be
+ * included in this file.
+ */
+
+ .single-guestpost-item{
+    width: 100%;
+    margin:0 auto;    
+    clear: both;
+    margin-bottom: 20px; 
+    overflow: auto;
+    border-bottom: #eee thin solid;
+    padding-bottom: 20px;  
+   }
+    
+   .guestpost-poster{
+   width: 160px;
+   float: left;
+   margin-right: 25px; 
+   }
+    
+   .guestpost-poster img{
+   width: 100%;
+   height: auto;
+   }
+    
+   .guestpost-name{
+   font-size: 35px;
+   }
