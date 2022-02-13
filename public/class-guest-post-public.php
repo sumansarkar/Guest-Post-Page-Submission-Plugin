@@ -232,7 +232,7 @@ class Guest_Post_Public {
         //$result .= wp_dropdown_categories( 'show_option_none=Category&tab_index=4&taxonomy=category' );
 
         $result .= '<p><label for="feature_image"> Featured Image </label>
-		</br><input type="file" name="feature_image" id="feature_image" aria-required="true"></p><br>';
+		</br><input type="file" name="feature_image" id="feature_image" aria-required="true" accept="image/png, image/gif, image/jpeg"></p><br>';
 
 		$result .='<p><input type="submit" value="Publish" tabindex="6" id="gp_submit" name="submit" />
 		<input type="hidden" name="action" value="guestposttosave"/></p>';
