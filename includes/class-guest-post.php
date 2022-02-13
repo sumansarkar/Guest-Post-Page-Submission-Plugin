@@ -173,8 +173,12 @@ class Guest_Post {
 
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_styles' );
 		$this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'enqueue_scripts' );
-		$this->loader->add_shortcode( 'allgestpost-listing', $plugin_public, 'list_all_gest_post_shortcode', $priority = 10, $accepted_args = 2 );
+		$this->loader->add_shortcode( 'alldraftgestpost-listing', $plugin_public, 'list_all_gest_post_shortcode', $priority = 10, $accepted_args = 2 );
 		$this->loader->add_shortcode( 'frontend-guestpost', $plugin_public, 'frontend_guestpost_shortcode' );
+		$this->loader->add_action( 'wp_ajax_guestposttosave', $plugin_public, 'guestpost_if_submitted' ); 
+		$this->loader->add_action( 'wp_ajax_nopriv_guestposttosave', $plugin_public, 'guestpost_if_submitted' ); 
+ 
+	
 
 	}
 

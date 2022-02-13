@@ -101,15 +101,15 @@ class Guest_Post_Public {
 	}
 
 	/**
-	 * Register short code for listing all guest post in site
+	 * All guest post save in draft mode featch and listing with pagination
 	 *
 	 * @since    1.0.0
 	 */
 
-	function list_all_gest_post_shortcode( $atts ) {
+	public function list_all_gest_post_shortcode( $atts ) {
 
 		global $paged;
-		$posts_per_page = 3;
+		$posts_per_page = 10;
 		$settings = array(
 			'showposts' => $posts_per_page, 
 			'post_type' => 'guestpost', 
@@ -161,16 +161,42 @@ class Guest_Post_Public {
 
 	function frontend_guestpost_shortcode(){
 
+		if ( is_user_logged_in() ) {
+
 		return $this->frontend_guestpost_htmlfrm();
+
+		}else{
+
+			return "<p> Please Login For Submit Guest Post </p>";
+		}
+		
 
 	}
 
+	/**
+	 * Form code for frontend guest post submition
+	 *
+	 * @since    1.0.0
+	 */
+
 	function frontend_guestpost_htmlfrm(){
 
-		$result = '<form id="new_post" name="new_post" method="post"  enctype="multipart/form-data">';
+
+		
+
+		
+		$result = '<form id="new_post" name="new_post" method="post" action="'. admin_url('admin-ajax.php') .'"  enctype="multipart/form-data">';
+
+		if (isset($_GET['status'])) {
+			$result .= "<p class='message '" . $_GET['status'] . "'>";
+		
+			$result .= $_GET['status'] == "success" ? "Post successfully submited" : "Something wrong, please try again";
+		
+			$result .= "</p>";
+		}
 
         $result .= '<p><label for="title"> Post Title </label><br />
-        <input type="text" id="title" value="" tabindex="1" size="20" name="gptitle" />
+        <input type="text" id="title" value="" tabindex="1" size="20" name="gptitle" required />
         </p>';
 
 		$args = array(
@@ -182,8 +208,8 @@ class Guest_Post_Public {
   
 			if ( $post_types ) { 
 			  
-				$result .= '<p><label for="title"> Post Type </label><br />
-				<select name="gpposttype">';
+				$result .= '<p><label for="gpposttype"> Post Type </label><br />
+				<select name="gpposttype" required>';
 
 				$result .= '<option value="">--Select Post Type--</option>';
 			  
@@ -200,22 +226,112 @@ class Guest_Post_Public {
 		</p>';
 
 		$result .= '<p><label for="excerpt"> Excerpt </label><br />
-        <input type="text" id="excerpt" value="" tabindex="1" size="200" name="gpexcerpt" />
+        <input type="text" id="gpexcerpt" value="" tabindex="1" size="200" name="gpexcerpt" />
         </p>';
 
         //$result .= wp_dropdown_categories( 'show_option_none=Category&tab_index=4&taxonomy=category' );
 
-        $result .= '<p><label for="post_tags"> Featured Image </label>
-		</br><input type="file" name="gppost_image" id="gppost_image" aria-required="true"></p><br>';
+        $result .= '<p><label for="feature_image"> Featured Image </label>
+		</br><input type="file" name="feature_image" id="feature_image" aria-required="true"></p><br>';
 
-		$result .='<p><input type="submit" value="Publish" tabindex="6" id="submit" name="submit" /></p>';
+		$result .='<p><input type="submit" value="Publish" tabindex="6" id="gp_submit" name="submit" />
+		<input type="hidden" name="action" value="guestposttosave"/></p>';
 
-		$result .= wp_nonce_field( 'gp_nonce_action', 'gp_nonce_field' );
+		$date = date('Y-m-d');
+		$result .= wp_nonce_field('GP_POST_SAVE_KEY' . $date, 'gp_post_security');
         
         $result .='</form>';
 
 		return $result;
 
+
+	}
+
+	/**
+	 * Form validation function
+	 *
+	 * @since    1.0.0
+	 */
+
+	private function validateNonce( $data )
+    {
+
+
+        $isValid = false;
+
+
+        $date = date('Y-m-d');
+
+        if ( wp_verify_nonce( $_POST['gp_post_security'], 'GP_POST_SAVE_KEY' . $date ) ) {
+
+
+            $isValid = true;
+
+
+        }
+
+
+        return $isValid;
+    }
+
+	/**
+	 * Form data insert and image upload function
+	 *
+	 * @since    1.0.0
+	 */
+
+	function guestpost_if_submitted(){
+		
+        $status = $this->validateNonce( $_POST );
+
+        $referer = explode("?", $_SERVER['HTTP_REFERER']);
+        $referer_url = $referer[0];
+
+        if ($status == true) {
+
+            $post_information = array(
+
+                'post_title' 	=> isset($_POST['gptitle']) ? wp_strip_all_tags($_POST['gptitle']) : "",
+                'post_content' 	=> isset($_POST['gpdescription']) ? ($_POST['gpdescription']) : "",
+                'post_type' 	=> isset($_POST['gpposttype']) ? ($_POST['gpposttype']) : "post",
+				'post_excerpt' 	=> isset($_POST['gpposttype']) ? ($_POST['gpexcerpt'] ) : "",
+                'post_status' 	=> 'Draft'
+
+            );
+
+            $postID = wp_insert_post($post_information);
+
+            // These files need to be included as dependencies when on the front end.
+            require_once( ABSPATH . 'wp-admin/includes/image.php' );
+            require_once( ABSPATH . 'wp-admin/includes/file.php' );
+            require_once( ABSPATH . 'wp-admin/includes/media.php' );
+
+            // Wordpress file upload logic
+            if ( isset( $_FILES['feature_image']['tmp_name']  )) {
+
+                $attachment_id = media_handle_upload( 'feature_image', $postID );
+                set_post_thumbnail( $postID, $attachment_id );
+            }
+
+			// Email functionality for send notification email to admin
+			$to 		= bloginfo('admin_email');
+    		$subject 	= "New Guest Post Submited";
+    		$message 	= "New Guest Post has submited.Please review and publish it";
+    		wp_mail($to, $subject, $message );
+
+            $redirect = $referer_url . "?status=success";
+
+        } else {
+
+            $redirect = $referer_url . "?status=failed";
+
+        }
+
+
+        wp_redirect($redirect);
+        die('die');
+    
+		
 
 	}
 
